@@ -5,9 +5,12 @@ const router = express.Router();
 const zod = require("zod");
 const { User, Account } = require("../db");
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET } = require("../config");
 const  { authMiddleware } = require("../middleware");
-console.log("reacher here")
+const env=require('dotenv').config();
+const JWT_SECRET=process.env.JWT_SECRET;
+
+
+
 const signupBody = zod.object({
     username: zod.string().email(),
 	firstName: zod.string(),
@@ -16,11 +19,11 @@ const signupBody = zod.object({
 })
 
 router.post("/signup", async (req, res) => {
-    // console.log("req was here :",req.body)
+
     const { success } = signupBody.safeParse(req.body)
     if (!success) {
         return res.status(411).json({
-            message: "Email already taken / Incorrect inputs"
+            message: "Email already taken / Incorrect inputs "
         })
     }
 
@@ -30,7 +33,7 @@ router.post("/signup", async (req, res) => {
 
     if (existingUser) {
         return res.status(411).json({
-            message: "Email already taken/Incorrect inputs"
+            message: "Email already taken/signed up already please sign in"
         })
     }
 
@@ -70,24 +73,22 @@ router.post("/signin", async (req, res) => {
             message: "Email already taken / Incorrect inputs"
         })
     }
-
     const user = await User.findOne({
         username: req.body.username,
         password: req.body.password
     });
-
+    
     if (user) {
         const token = jwt.sign({
             userId: user._id
         }, JWT_SECRET);
-  
+
         res.json({
             token: token
         })
         return;
     }
 
-    
     res.status(411).json({
         message: "Error while logging in"
     })
@@ -100,14 +101,13 @@ const updateBody = zod.object({
 })
 
 router.put("/", authMiddleware, async (req, res) => {
-    // console.log("reached here",req.body);
+
     const { success } = updateBody.safeParse(req.body)
     if (!success) {
         res.status(411).json({
             message: "Error while updating information"
         })
     }
-    //console.log(req.userId)
     await User.findOneAndUpdate( {_id: req.userId},req.body)
     //const userData=await User.findOne({_id:req.userId});
     res.json({
